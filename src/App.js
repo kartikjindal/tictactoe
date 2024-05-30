@@ -2,161 +2,109 @@ import { useState } from "react";
 import "./App.css";
 
 export default function App() {
-  const [xIsNext, setXIsNext] = useState(true);
   const [history, setHistory] = useState([Array(9).fill(null)]);
-  const currentSquares = history[history.length - 1];
-  function handlePlay(arr)
-  {
-    setHistory([...history,arr]);
-    setXIsNext(!xIsNext);
+  const [currentMove, setCurrentMove] = useState(0);
+  const currentSquares = history[currentMove];
+  const xIsNext = currentMove % 2 === 0;
+
+  function handlePlay(arr) {
+    const nextHistory = [...history.slice(0, currentMove + 1), arr];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
   }
-  function jumpTo({move}){
-    currentSquares=history[move];
+
+  function jumpTo(move) {
+    setCurrentMove(move);
   }
-  const Moves = history.map((squares, move) => {
-    let description;
-    if (move > 0) {
-      description = 'Go to move #' + move;
-    } else {
-      description = 'Go to game start';
-    }
+
+  const moves = history.map((squares, move) => {
+    const description = move > 0 ? `Go to move #${move}` : 'Go to game start';
     return (
-      <li>
-        <button onClick={() => jumpTo(move)}>{description}</button>
+      <li key={move}>
+        <button className="moves-button" onClick={() => jumpTo(move)}>{description}</button>
       </li>
     );
   });
+
   return (
-    <div>
-      <Board arr={currentSquares} xIsNext={xIsNext} setXIsNext={setXIsNext} onPlay={handlePlay}/>
-    <ol>
-      <Moves/>
-      </ol>
-    </div>
+    <>
+      <div className="header">
+        <h1>Tic Tac Toe</h1>
+      </div>
+      <div className="wrapper">
+        <div className="sidebar">
+          <ol className="moves-list">{moves}</ol>
+        </div>
+        <div className="space">
+          
+        </div>
+        <div className="app">
+          <Board arr={currentSquares} xIsNext={xIsNext} onPlay={handlePlay} />
+        </div>
+      </div>
+    </>
   );
 }
 
+function Board({ arr, xIsNext, onPlay }) {
+  const winPatterns = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ];
 
-function Board({ arr,xIsNext ,onPlay}) {
-  const winner = checkWinner();
-  let status;
-  if (winner) {
-    status = "Winner: " + winner;
-  } else {
-    status = "Next player: " + (xIsNext ? "X" : "O");
-  }
-  function checkWinner()
-     {
-      for(let i=0;i<win.length;i++){
-      if (
-        arr[win[i][0]] === arr[win[i][1]] &&
-        arr[win[i][0]] === arr[win[i][2]]
-      ) {
-        return arr[win[i][0]];
-        // console.log(arr[win[i][0]]);
+  function checkWinner() {
+    for (let i = 0; i < winPatterns.length; i++) {
+      const [a, b, c] = winPatterns[i];
+      if (arr[a] && arr[a] === arr[b] && arr[a] === arr[c]) {
+        return arr[a];
       }
     }
+    return null;
+  }
 
-  }
-  function handleclick(i) {
-    let newarr = arr.slice();
-    if (arr[i] || checkWinner()) return;
-    if (xIsNext) {
-      newarr[i] = "X";
-      // setXIsNext(false);
-    } else {
-      newarr[i] = "O";
-      // setXIsNext(true);
-    }
+  const winner = checkWinner();
+  const status = winner ? `Winner: ${winner}` : `Next player: ${xIsNext ? "X" : "O"}`;
+
+  function handleClick(i) {
+    if (arr[i] || winner) return;
+    const newarr = arr.slice();
+    newarr[i] = xIsNext ? "X" : "O";
     onPlay(newarr);
-    // checkWinner();
   }
-  
+
   return (
-    <div>
-      <p> {status}</p>
-      <div>
-        <Square
-          value={arr[0]}
-          onsquareclick={() => {
-            handleclick(0);
-          }}
-        />
-        <Square
-          value={arr[1]}
-          onsquareclick={() => {
-            handleclick(1);
-          }}
-        />
-        <Square
-          value={arr[2]}
-          onsquareclick={() => {
-            handleclick(2);
-          }}
-        />
-      </div>
-      <div>
-        <Square
-          value={arr[3]}
-          onsquareclick={() => {
-            handleclick(3);
-          }}
-        />
-        <Square
-          value={arr[4]}
-          onsquareclick={() => {
-            handleclick(4);
-          }}
-        />
-        <Square
-          value={arr[5]}
-          onsquareclick={() => {
-            handleclick(5);
-          }}
-        />
-      </div>
-      <div>
-        <Square
-          value={arr[6]}
-          onsquareclick={() => {
-            handleclick(6);
-          }}
-        />
-        <Square
-          value={arr[7]}
-          onsquareclick={() => {
-            handleclick(7);
-          }}
-        />
-        <Square
-          value={arr[8]}
-          onsquareclick={() => {
-            handleclick(8);
-          }}
-        />
+    <div className="board-container">
+      <p className="top_message">{status}</p>
+      <div className="board">
+        {[0, 1, 2].map((row) => (
+          <div key={row} className="row">
+            {[0, 1, 2].map((col) => {
+              const index = row * 3 + col;
+              return (
+                <Square
+                  key={index}
+                  value={arr[index]}
+                  onSquareClick={() => handleClick(index)}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-function Square({ value, onsquareclick }) {
+
+function Square({ value, onSquareClick }) {
   return (
-    <button
-      className="square"
-      onClick={() => {
-        onsquareclick();
-      }}
-    >
+    <button className="square" onClick={onSquareClick}>
       {value}
     </button>
   );
 }
-const win = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-];
